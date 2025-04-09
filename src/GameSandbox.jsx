@@ -2,6 +2,22 @@ import React, { useState } from "react";
 import { JsonView } from "react-json-view-lite";
 import "react-json-view-lite/dist/index.css";
 
+const loadExternalScripts = async (urls) => {
+  const promises = urls.map((url) => {
+    return new Promise((resolve, reject) => {
+      if (document.querySelector(`script[src="${url}"]`)) return resolve(); // already loaded
+      const script = document.createElement("script");
+      script.src = url;
+      script.async = true;
+      script.onload = resolve;
+      script.onerror = (e) =>
+        reject(new Error(`❌ Failed to load script: ${url}`));
+      document.head.appendChild(script);
+    });
+  });
+  await Promise.all(promises);
+};
+
 const GameSandbox = () => {
   const [clientCode, setClientCode] = useState(`
 // Define your component using JSX:
@@ -9,12 +25,33 @@ function GameComponent({ sendToServer, lastServerMessage }) {
   const [count, setCount] = React.useState(0);
 
   return (
-    <div>
-      <p>Count: {count}</p>
-      <button onClick={() => setCount(count + 1)}>+1</button>
-      <button onClick={() => sendToServer({ count })}>Send to Server</button>
+    <div className="p-4 bg-gray-100 rounded shadow space-y-4">
+      <div className="bg-blue-200 text-black text-center p-2 font-bold rounded">
+        🎮 Game Client Ready
+      </div>
+
+      <p className="text-black text-lg">Count: {count}</p>
+
+      <div className="flex gap-2 flex-wrap">
+        <button
+          onClick={() => setCount(count + 1)}
+          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+        >
+          +1
+        </button>
+
+        <button
+          onClick={() => sendToServer({ count })}
+          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+        >
+          Send to Server
+        </button>
+      </div>
+
       {lastServerMessage && (
-        <p>Server said: {JSON.stringify(lastServerMessage)}</p>
+        <div className="mt-2 text-sm text-black">
+          Server said: {JSON.stringify(lastServerMessage)}
+        </div>
       )}
     </div>
   );
@@ -22,10 +59,10 @@ function GameComponent({ sendToServer, lastServerMessage }) {
 `);
 
   const [serverCode, setServerCode] = useState(`
-// A fake server that echoes the message
+// A mock gameRelay and gameController that echoes the message
 function handleServerMessage(msg) {
   console.log("Server received:", msg);
-  return { echoed: msg };
+  return { ...msg };
 }
 `);
 
@@ -34,9 +71,16 @@ function handleServerMessage(msg) {
   const [lastServerMsg, setLastServerMsg] = useState(null);
   const [lastClientInput, setLastClientInput] = useState(null);
   const [lastClientMsg, setLastClientMsg] = useState(null);
+  const [numPlayers, setNumPlayers] = useState(2); // Default to 2 players
+  const [userImports, setUserImports] = useState([
+    "https://cdn.tailwindcss.com",
+  ]);
 
-  const handleRun = () => {
+  const handleRun = async () => {
     console.log("▶️ Running sandbox...");
+    console.log("📦 Loading external scripts...");
+    await loadExternalScripts(userImports.filter(Boolean));
+    console.log("✅ Scripts loaded.");
 
     try {
       console.log("🧠 Compiling server code...");
@@ -97,8 +141,23 @@ function handleServerMessage(msg) {
 
   return (
     <div className="p-4 space-y-4 max-w-6xl mx-auto">
+      <div>
+        <h1 className="text-2xl font-bold mb-4">POGN Game Sandbox</h1>
+      </div>
       <div className="p-4 bg-gradient-to-r from-pink-500 to-yellow-500 text-white text-center text-xl font-bold rounded shadow-lg">
         ✅ Tailwind is working!
+      </div>
+      <div>
+        <h2 className="font-bold mb-2">External Scripts (CDNs)</h2>
+        <textarea
+          value={userImports.join("\n")}
+          onChange={(e) => setUserImports(e.target.value.split("\n"))}
+          className="w-full h-24 p-2 font-mono bg-gray-800 text-yellow-300 rounded"
+          spellCheck={false}
+        />
+        <p className="text-sm text-gray-500 mt-1">
+          Enter each script URL on a new line.
+        </p>
       </div>
 
       {/* Code Editors */}
@@ -124,38 +183,58 @@ function handleServerMessage(msg) {
       </div>
 
       {/* Run Button */}
+      <div className="flex items-center gap-2">
+        <label className="font-semibold">Players:</label>
+        <input
+          type="number"
+          min={1}
+          max={10}
+          value={numPlayers}
+          onChange={(e) => setNumPlayers(Number(e.target.value))}
+          className="w-16 px-2 py-1 border rounded"
+        />
+      </div>
+
       <button
         onClick={handleRun}
         className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
       >
         Run Game
       </button>
-
-      {Component ? (
-        <Component
-          sendToServer={(msg) => {
-            console.log("📤 Realtime sendToServer triggered with:", msg);
-            try {
-              setLastClientInput(msg);
-              setLastServerInput(msg);
-              const response = new Function(
-                `${serverCode}; return handleServerMessage;`
-              )()(msg);
-              setLastServerMsg(response);
-              setLastClientMsg(response);
-            } catch (err) {
-              console.error("❌ Realtime send error:", err);
-              setLastServerMsg({ error: err.message });
-              setLastClientMsg({ error: err.message });
-            }
-          }}
-          lastServerMessage={lastServerMsg}
-        />
-      ) : (
-        <p className="text-gray-500">Run a game to see it here.</p>
+      {Component && (
+        <div className="flex flex-wrap gap-4 border border-gray-300 rounded p-4 bg-white">
+          {Array.from({ length: numPlayers }, (_, i) => (
+            <div
+              key={i}
+              className="w-full md:w-[45%] lg:w-[30%] p-2 border rounded shadow"
+            >
+              <h4 className="text-center font-bold mb-2">Player {i + 1}</h4>
+              <Component
+                sendToServer={(msg) => {
+                  const messageWithPlayerId = { ...msg, playerId: i + 1 };
+                  console.log(`📤 Player ${i + 1} send:`, messageWithPlayerId);
+                  try {
+                    setLastClientInput(messageWithPlayerId);
+                    setLastServerInput(messageWithPlayerId);
+                    const response = new Function(
+                      `${serverCode}; return handleServerMessage;`
+                    )()(messageWithPlayerId);
+                    setLastServerMsg(response);
+                    setLastClientMsg(response);
+                  } catch (err) {
+                    console.error(`❌ Error for player ${i + 1}:`, err);
+                    const error = { error: err.message };
+                    setLastServerMsg(error);
+                    setLastClientMsg(error);
+                  }
+                }}
+                lastServerMessage={lastServerMsg}
+              />
+            </div>
+          ))}
+        </div>
       )}
 
-      {/* Render Game */}
       {(lastClientInput ||
         lastClientMsg ||
         lastServerInput ||
