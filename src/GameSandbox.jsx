@@ -7,6 +7,8 @@ import { defaultClientCode, defaultServerCode } from "./initialCode";
 import CollapsedJson from "./components/CollapsedJson";
 import loadExternalScripts from "./utils/loadExternalScripts";
 import useTranspiledComponent from "./hooks/useTranspiledComponent";
+import * as firmware from "./utils/serverFirmware";
+globalThis.__firmware = firmware;
 
 const GameSandbox = () => {
   const componentRef = useRef(null);
@@ -22,9 +24,30 @@ const GameSandbox = () => {
   const handleRun = async () => {
     await loadExternalScripts(userImports.filter(Boolean));
     try {
-      const serverFn = new Function(
-        `${serverCode}; return handleServerMessage;`
-      )();
+      //   const serverFn = new Function(
+      //     `${serverCode}; return handleServerMessage;`
+      //   )();
+      //   const serverFn = new Function(
+      //     `${serverCode}; return { handleServerMessage, initServer };`
+      //   )();
+
+      //       const firmwareHeader = `
+      //   const serverState = globalThis.__firmware.serverState;
+      //   const initServer = globalThis.__firmware.initServer;
+      //   const broadcastToAllPlayers = globalThis.__firmware.broadcastToAllPlayers;
+      // `;
+      const firmwareHeader = `
+  const serverState = globalThis.__firmware.serverState;
+  const initServer = globalThis.__firmware.initServer;
+  const broadcastToAllPlayers = globalThis.__firmware.broadcastToAllPlayers;
+  const updatePlayerData = globalThis.__firmware.updatePlayerData;
+`;
+
+      const fullServerCode = `${firmwareHeader}\n${serverCode}\nreturn { handleServerMessage, initServer };`;
+
+      const serverFn = new Function(fullServerCode)();
+
+      serverFn.initServer(Array.from({ length: numPlayers }, (_, i) => i + 1));
 
       const EvaluatedComponent = await transpile(
         clientCode,
@@ -35,28 +58,71 @@ const GameSandbox = () => {
       componentRef.current = EvaluatedComponent;
       setPlayerGameComponent(() => componentRef.current);
 
-      const sendToServer = (msg, playerId) => {
+      const sendToServer = ({ playerId, relayId, payload }) => {
+        console.log("Sending to server:", payload, playerId, relayId);
+        if (!payload || !playerId || !relayId) {
+          console.warn("Invalid payload:", payload, playerId, relayId);
+        }
         try {
-          const res = serverFn(msg);
-          setPlayerStates((prev) => ({
-            ...prev,
-            [playerId]: {
-              lastInput: msg,
-              lastResponse: res,
-            },
-          }));
+          const res = serverFn.handleServerMessage(payload); // ✅ correct
+
+          // const res = serverFn(payload);
+          //   setPlayerStates((prev) => ({
+          //     ...prev,
+          //     [playerId]: {
+          //       lastInput: payload,
+          //       lastResponse: res,
+          //     },
+          //   }));
+
+          if (res && typeof res === "object") {
+            setPlayerStates((prev) => {
+              const newStates = { ...prev };
+              for (const pid in res) {
+                newStates[pid] = {
+                  lastInput:
+                    pid == playerId ? payload : newStates[pid]?.lastInput,
+                  lastResponse: res[pid],
+                };
+              }
+              return newStates;
+            });
+          }
         } catch (err) {
-          const error = { error: err.message };
-          setPlayerStates((prev) => ({
-            ...prev,
-            [playerId]: {
-              lastInput: msg,
-              lastResponse: error,
-            },
-          }));
+          const errorBroadcast = {};
+          for (let id in playerStates) {
+            errorBroadcast[id] = {
+              type: "error",
+              payload: {
+                error: err.message,
+                triggeredBy: playerId,
+                youAre: Number(id),
+              },
+            };
+          }
+
+          setPlayerStates((prev) => {
+            const newStates = { ...prev };
+            for (const pid in errorBroadcast) {
+              newStates[pid] = {
+                lastInput:
+                  pid == playerId ? payload : newStates[pid]?.lastInput,
+                lastResponse: errorBroadcast[pid],
+              };
+            }
+            return newStates;
+          });
+
+          //   const error = { error: err.message };
+          //   setPlayerStates((prev) => ({
+          //     ...prev,
+          //     [playerId]: {
+          //       lastInput: payload,
+          //       lastResponse: error,
+          //     },
+          //   }));
         }
       };
-
       window.sendToServer = sendToServer;
     } catch (err) {
       console.error("Transpile error:", err);
@@ -122,7 +188,11 @@ const GameSandbox = () => {
                 </h4>
                 <PlayerGameComponent
                   sendGameMessage={(msg) =>
-                    window.sendToServer({ ...msg, playerId }, playerId)
+                    window.sendToServer({
+                      relayId: "default",
+                      playerId,
+                      payload: { ...msg },
+                    })
                   }
                   gameState={playerState.lastResponse}
                   playerId={playerId}
@@ -138,9 +208,9 @@ const GameSandbox = () => {
       {Object.keys(playerStates).length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
           {Object.entries(playerStates).map(
-            ([pid, { lastInput, lastResponse }]) => (
-              <div key={pid}>
-                <h3 className="font-semibold">Player {pid}</h3>
+            ([playerId, { lastInput, lastResponse }]) => (
+              <div key={playerId}>
+                <h3 className="font-semibold">Player {playerId}</h3>
                 <div className="border rounded p-2 bg-gray-100 text-[12px] leading-[1.2] text-left">
                   <h4 className="font-semibold">Sent to Server</h4>
                   <CollapsedJson data={lastInput} />
