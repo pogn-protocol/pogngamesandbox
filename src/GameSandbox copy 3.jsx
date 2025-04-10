@@ -4,9 +4,47 @@ import React, { useState, useRef } from "react";
 import { JsonView } from "react-json-view-lite";
 import "react-json-view-lite/dist/index.css";
 import { defaultClientCode, defaultServerCode } from "./initialCode";
-import CollapsedJson from "./components/CollapsedJson";
-import loadExternalScripts from "./utils/loadExternalScripts";
-import useTranspiledComponent from "./hooks/useTranspiledComponent";
+
+// JSON viewer wrapper
+const CollapsedJson = ({ data }) => (
+  <JsonView
+    data={data}
+    shouldExpandNode={(level, value, field) =>
+      level === 0 || field === "payload"
+    }
+  />
+);
+
+const loadExternalScripts = async (urls) => {
+  const promises = urls.map((url) => {
+    return new Promise((resolve, reject) => {
+      if (document.querySelector(`script[src="${url}"]`)) return resolve();
+      const script = document.createElement("script");
+      script.src = url;
+      script.async = true;
+      script.onload = resolve;
+      script.onerror = (e) =>
+        reject(new Error(`❌ Failed to load script: ${url}`));
+      document.head.appendChild(script);
+    });
+  });
+  await Promise.all(promises);
+};
+
+// Hook to handle transpiling the client component
+const useTranspiledComponent = () => {
+  const transpile = async (code, args, values) => {
+    const transpiled = Babel.transform(code, {
+      presets: ["react"],
+    }).code;
+    const factory = new Function(
+      ...args,
+      `${transpiled}; return GameComponent;`
+    );
+    return factory(...values);
+  };
+  return { transpile };
+};
 
 const GameSandbox = () => {
   const componentRef = useRef(null);
