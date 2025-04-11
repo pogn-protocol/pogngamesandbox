@@ -8,6 +8,12 @@ function GameComponent({
   const [count, setCount] = React.useState(0);
   const [gameStates, setGameStates] = React.useState([]);
 
+  // 🔥 NEW: determine if it's this player's turn
+  const isMyTurn =
+    gameState?.payload?.currentTurn == null || // 🆓 Not turn-based
+    Number(gameState.payload.currentTurn) === Number(playerId); // ✅ If turn-based, it's my turn
+  const currentTurn = gameState?.payload?.currentTurn;
+
   React.useEffect(() => {
     if (gameState) {
       setGameStates((prev) => [...prev, gameState]);
@@ -19,6 +25,24 @@ function GameComponent({
       <div className="bg-blue-200 text-black text-center p-2 font-bold rounded">
         🎮 Game Client Ready Player: ({playerId})
       </div>
+      <div className="text-center text-sm font-semibold mt-2">
+        {/* {isMyTurn ? (
+          <p className="text-green-600">✅ Your Turn!</p>
+        ) : (
+          <p className="text-gray-500">⏳ Waiting for Player {currentTurn}</p>
+        )} */}
+        {gameState?.payload?.currentTurn != null && (
+          <div className="text-center text-sm font-semibold mt-2">
+            {isMyTurn ? (
+              <p className="text-green-600">✅ Your Turn!</p>
+            ) : (
+              <p className="text-gray-500">
+                ⏳ Waiting for Player {currentTurn}
+              </p>
+            )}
+          </div>
+        )}
+      </div>
 
       <p className="text-black text-lg">Count: {count}</p>
 
@@ -29,8 +53,30 @@ function GameComponent({
         >
           +1
         </button>
-
         <button
+          onClick={() =>
+            sendGameMessage({
+              payload: {
+                type: "game",
+                action: "gameAction",
+                gameAction: "submitCount",
+                count,
+                playerId,
+                gameId,
+              },
+            })
+          }
+          disabled={!isMyTurn} // 🔥 NEW
+          className={`px-4 py-2 rounded transition ${
+            isMyTurn
+              ? "bg-blue-600 hover:bg-blue-700 text-white"
+              : "bg-gray-300 text-gray-600 cursor-not-allowed"
+          }`}
+        >
+          Send to Server
+        </button>
+
+        {/* <button
           onClick={() =>
             sendGameMessage({
               payload: {
@@ -46,7 +92,7 @@ function GameComponent({
           className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
         >
           Send to Server
-        </button>
+        </button> */}
       </div>
 
       {gameStates.length > 0 && (

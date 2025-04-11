@@ -3,15 +3,34 @@
 export const serverState = {
   total: 0,
   playerData: {},
+  currentTurn: null, // <-- NEW
 };
 
-export function initServer(players = []) {
+export function initServer(players = [], turnBased = true) {
+  serverState.turnBased = turnBased;
+  serverState.total = 0;
+  serverState.playerData = {};
+  serverState.currentTurn = turnBased ? Number(players[0]) : null;
+
   players.forEach((id) => {
-    if (!serverState.playerData[id]) {
-      serverState.playerData[id] = { sum: 0, messages: [] };
-    }
+    serverState.playerData[id] = { sum: 0, messages: [] };
   });
+
+  return broadcastToAllPlayers(null);
 }
+
+// export function initServer(players = []) {
+//   // 💥 Reset
+//   serverState.total = 0;
+//   serverState.playerData = {};
+//   serverState.currentTurn = players[0] || null;
+
+//   players.forEach((id) => {
+//     serverState.playerData[id] = { sum: 0, messages: [] };
+//   });
+
+//   return broadcastToAllPlayers(null); // ⬅️ Initial state
+// }
 
 export function updatePlayerData(playerId, msg, count = 0) {
   if (!serverState.playerData[playerId]) {
@@ -34,6 +53,10 @@ export function broadcastToAllPlayers(triggeredBy) {
         playerData: serverState.playerData,
         lastUpdatedBy: triggeredBy,
         youAre: Number(id),
+        //currentTurn: Number(serverState.currentTurn),
+        currentTurn: serverState.turnBased
+          ? Number(serverState.currentTurn)
+          : null,
       },
     };
   }

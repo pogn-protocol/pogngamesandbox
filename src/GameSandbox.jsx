@@ -20,6 +20,7 @@ const GameSandbox = () => {
   const [playerStates, setPlayerStates] = useState({});
   const [numPlayers, setNumPlayers] = useState(2);
   const [userImports, setUserImports] = useState([]);
+  const [turnBased, setTurnBased] = useState(true);
 
   const handleRun = async () => {
     await loadExternalScripts(userImports.filter(Boolean));
@@ -44,10 +45,25 @@ const GameSandbox = () => {
 `;
 
       const fullServerCode = `${firmwareHeader}\n${serverCode}\nreturn { handleServerMessage, initServer };`;
-
       const serverFn = new Function(fullServerCode)();
+      // serverFn.initServer(Array.from({ length: numPlayers }, (_, i) => i + 1));
+      const initialBroadcast = serverFn.initServer(
+        Array.from({ length: numPlayers }, (_, i) => i + 1),
+        turnBased
+      );
 
-      serverFn.initServer(Array.from({ length: numPlayers }, (_, i) => i + 1));
+      if (initialBroadcast && typeof initialBroadcast === "object") {
+        setPlayerStates((prev) => {
+          const newStates = { ...prev };
+          for (const pid in initialBroadcast) {
+            newStates[pid] = {
+              lastInput: null,
+              lastResponse: initialBroadcast[pid],
+            };
+          }
+          return newStates;
+        });
+      }
 
       const EvaluatedComponent = await transpile(
         clientCode,
@@ -163,6 +179,13 @@ const GameSandbox = () => {
           value={numPlayers}
           onChange={(e) => setNumPlayers(Number(e.target.value))}
           className="w-16 px-2 py-1 border rounded"
+        />
+        <label className="font-semibold ms-4">Turn-Based:</label>
+        <input
+          type="checkbox"
+          checked={turnBased}
+          onChange={(e) => setTurnBased(e.target.checked)}
+          className="w-5 h-5"
         />
       </div>
 
