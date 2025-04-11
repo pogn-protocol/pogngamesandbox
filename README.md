@@ -3,4 +3,4 @@
 
 Develop games for pogn straight out of the POGN Games Sandbox demo.
 
-![image](https://github.com/user-attachments/assets/6c2e44c9-37c1-4fcc-8891-8ed646ea9c63)
+![image](https://github.com/user-attachments/assets/d488bdc5-e781-468e-ae7f-e905a45d974e)
