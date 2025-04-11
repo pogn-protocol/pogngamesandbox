@@ -20,6 +20,16 @@ function GameComponent({
     }
   }, [gameState]);
 
+  if (gameState?.action === "gameOver") {
+    return (
+      <div className="p-4 bg-red-100 rounded shadow space-y-4 text-center">
+        <h2 className="text-xl font-bold text-red-700">🛑 Game Over</h2>
+        <p>{gameState.payload?.message}</p>
+        <p>Rounds Played: {gameState.payload?.roundNumber}</p>
+      </div>
+    );
+  }
+
   return (
     <div className="p-4 bg-gray-100 rounded shadow space-y-4">
       <div className="bg-blue-200 text-black text-center p-2 font-bold rounded">
@@ -31,6 +41,12 @@ function GameComponent({
         ) : (
           <p className="text-gray-500">⏳ Waiting for Player {currentTurn}</p>
         )} */}
+        {gameState?.payload?.roundNumber != null && (
+          <p className="text-sm text-purple-700 font-bold">
+            🌀 Round: {gameState.payload.roundNumber}
+          </p>
+        )}
+
         {gameState?.payload?.currentTurn != null && (
           <div className="text-center text-sm font-semibold mt-2">
             {isMyTurn ? (

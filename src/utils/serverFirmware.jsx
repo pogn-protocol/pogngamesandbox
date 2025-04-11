@@ -4,13 +4,16 @@ export const serverState = {
   total: 0,
   playerData: {},
   currentTurn: null, // <-- NEW
+  roundNumber: 1,
 };
 
-export function initServer(players = [], turnBased = true) {
+export function initServer(players = [], turnBased = true, maxRounds = null) {
   serverState.turnBased = turnBased;
   serverState.total = 0;
   serverState.playerData = {};
   serverState.currentTurn = turnBased ? Number(players[0]) : null;
+  serverState.roundNumber = 1; // Reset round number
+  serverState.maxRounds = maxRounds; // ✅
 
   players.forEach((id) => {
     serverState.playerData[id] = { sum: 0, messages: [] };
@@ -57,6 +60,8 @@ export function broadcastToAllPlayers(triggeredBy) {
         currentTurn: serverState.turnBased
           ? Number(serverState.currentTurn)
           : null,
+        roundNumber: serverState.roundNumber,
+        maxRounds: serverState.maxRounds, // ✅
       },
     };
   }

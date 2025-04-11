@@ -21,6 +21,8 @@ const GameSandbox = () => {
   const [numPlayers, setNumPlayers] = useState(2);
   const [userImports, setUserImports] = useState([]);
   const [turnBased, setTurnBased] = useState(true);
+  const [useMaxRounds, setUseMaxRounds] = useState(true);
+  const [maxRounds, setMaxRounds] = useState(2);
 
   const handleRun = async () => {
     await loadExternalScripts(userImports.filter(Boolean));
@@ -49,7 +51,8 @@ const GameSandbox = () => {
       // serverFn.initServer(Array.from({ length: numPlayers }, (_, i) => i + 1));
       const initialBroadcast = serverFn.initServer(
         Array.from({ length: numPlayers }, (_, i) => i + 1),
-        turnBased
+        turnBased,
+        useMaxRounds ? maxRounds : null
       );
 
       if (initialBroadcast && typeof initialBroadcast === "object") {
@@ -186,6 +189,21 @@ const GameSandbox = () => {
           checked={turnBased}
           onChange={(e) => setTurnBased(e.target.checked)}
           className="w-5 h-5"
+        />
+        <label className="font-semibold">Max Rounds:</label>
+        <input
+          type="checkbox"
+          checked={useMaxRounds}
+          onChange={(e) => setUseMaxRounds(e.target.checked)}
+          className="w-5 h-5"
+        />
+        <input
+          type="number"
+          min={1}
+          value={maxRounds}
+          onChange={(e) => setMaxRounds(Number(e.target.value))}
+          className="w-20 px-2 py-1 border rounded"
+          disabled={!useMaxRounds}
         />
       </div>
 
