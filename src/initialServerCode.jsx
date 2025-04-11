@@ -17,8 +17,11 @@ class CounterGame {
     if (!this.totals[playerId]) this.totals[playerId] = 0;
     this.totals[playerId] += count;
 
-    const grandTotal = Object.values(this.totals).reduce((sum, n) => sum + n, 0);
-console.log("Grand Total:", grandTotal);
+    const grandTotal = Object.values(this.totals).reduce(
+      (sum, n) => sum + n,
+      0
+    );
+    console.log("Grand Total:", grandTotal);
     return {
       playerId,
       type: "game",
@@ -26,6 +29,8 @@ console.log("Grand Total:", grandTotal);
       playerTotal: this.totals[playerId],
       allTotals: { ...this.totals },
       grandTotal,
+      private: "You added " + count,
+      message: `Player ${playerId} added ${count}.`,
     };
   }
 }

@@ -171,11 +171,15 @@ export function processGameMessage(msg) {
   const baseBroadcast = broadcastToAllPlayers(playerId);
 
   for (const id in baseBroadcast) {
+    const isSender = String(id) === String(playerId);
+    const { private: privateData, ...publicResult } = result || {};
+
     baseBroadcast[id] = {
       ...baseBroadcast[id],
       payload: {
-        ...baseBroadcast[id],
-        ...result,
+        ...baseBroadcast[id], // ✅ just payload, not the full broadcast object
+        ...publicResult,
+        ...(isSender && { private: privateData }), // ✅ only for sender
       },
     };
   }
