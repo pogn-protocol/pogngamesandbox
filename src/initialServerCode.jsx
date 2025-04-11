@@ -1,89 +1,33 @@
-// function handleServerMessage(msg) {
-//   const { playerId, count = 0 } = msg?.payload || {};
+class CounterGame {
+  constructor() {
+    this.totals = {};
+  }
 
-//   updatePlayerData(playerId, msg, count);
+  processAction(playerId, payload) {
+    console.log("processAction", playerId, payload);
+    console.log("this.totals", this.totals);
 
-//   return broadcastToAllPlayers(playerId);
-// }
+    let { count = 0 } = payload;
 
-function handleServerMessage(msg) {
-  console.log("handleServerMessage:", msg);
-  console.log("serverState:", serverState);
-  const { playerId, count = 0 } = msg?.payload || {};
+    if (!count || isNaN(count)) {
+      console.log("Invalid count value:", count);
+      count = Number(count) || 0;
+    }
 
-  if (serverState.turnBased && playerId !== serverState.currentTurn) {
+    if (!this.totals[playerId]) this.totals[playerId] = 0;
+    this.totals[playerId] += count;
+
+    const grandTotal = Object.values(this.totals).reduce((sum, n) => sum + n, 0);
+console.log("Grand Total:", grandTotal);
     return {
-      [playerId]: {
-        type: "game",
-        action: "notYourTurn",
-        payload: {
-          message: `It's not your turn.`,
-          currentTurn: serverState.currentTurn,
-        },
-      },
+      playerId,
+      type: "game",
+      action: "gameAction",
+      playerTotal: this.totals[playerId],
+      allTotals: { ...this.totals },
+      grandTotal,
     };
   }
-
-  updatePlayerData(playerId, msg, count);
-  let shouldAdvanceRound = false; //
-  if (serverState.turnBased) {
-    const playerIds = Object.keys(serverState.playerData).map(Number);
-    const currentIndex = playerIds.indexOf(playerId);
-    const isLastPlayer = currentIndex === playerIds.length - 1;
-    const nextPlayer = playerIds[(currentIndex + 1) % playerIds.length];
-    serverState.currentTurn = nextPlayer;
-
-    shouldAdvanceRound = isLastPlayer;
-  } else {
-    shouldAdvanceRound = true;
-  }
-
-  if (shouldAdvanceRound) {
-    serverState.roundNumber += 1;
-
-    if (
-      serverState.maxRounds &&
-      serverState.roundNumber > serverState.maxRounds
-    ) {
-      const gameOverBroadcast = {};
-      for (const id in serverState.playerData) {
-        gameOverBroadcast[id] = {
-          type: "game",
-          action: "gameOver",
-          payload: {
-            message: "Max rounds reached. Game over.",
-            roundNumber: serverState.roundNumber - 1,
-          },
-        };
-      }
-      return gameOverBroadcast;
-    }
-    // if (isLastPlayer) {
-    //   serverState.roundNumber += 1; // Increment round number
-    //   if (isLastPlayer || !serverState.turnBased) {
-    //     serverState.roundNumber += 1;
-
-    //     if (
-    //       serverState.maxRounds &&
-    //       serverState.roundNumber > serverState.maxRounds
-    //     ) {
-    //       const gameOverBroadcast = {};
-    //       for (const id in serverState.playerData) {
-    //         gameOverBroadcast[id] = {
-    //           type: "game",
-    //           action: "gameOver",
-    //           payload: {
-    //             message: "Max rounds reached. Game over.",
-    //             roundNumber: serverState.roundNumber - 1,
-    //           },
-    //         };
-    //       }
-    //       return gameOverBroadcast;
-    //     }
-    //   }
-
-    // }
-  }
-
-  return broadcastToAllPlayers(playerId);
 }
+
+const defaultExport = CounterGame;
