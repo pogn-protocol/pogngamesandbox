@@ -1,86 +1,78 @@
-class TicTacToe {
+class OddsAndEvens {
   constructor() {
-    this.board = Array(9).fill(null); // 3x3 board
-    this.players = new Map(); // filled in by firmware
-    this.currentTurn = null;
-    this.winner = null;
-    this.movesMade = 0;
+    this.choices = {};
     this.rolesAssigned = false;
   }
 
-  assignRoles() {
-    if (!this.fixedRoles && this.roles) {
-      const playerIds = Object.keys(this.roles);
-      if (playerIds.length === 2) {
-        const [p1, p2] = playerIds;
-        this.roles[p1] = "X";
-        this.roles[p2] = "O";
-        this.fixedRoles = true;
-      }
+  assignGameRoles() {
+    const ids = Object.keys(this.roles);
+    if (ids.length === 2 && !this.rolesAssigned) {
+      const [p1, p2] = ids;
+      this.roles[p1] = "odd";
+      this.roles[p2] = "even";
+      this.rolesAssigned = true;
+      console.log("[OddsAndEvens] Roles:", this.roles);
     }
-  }
-
-  checkWinner() {
-    const b = this.board;
-    const lines = [
-      [0, 1, 2],
-      [3, 4, 5],
-      [6, 7, 8], // rows
-      [0, 3, 6],
-      [1, 4, 7],
-      [2, 5, 8], // cols
-      [0, 4, 8],
-      [2, 4, 6], // diagonals
-    ];
-    for (let [a, bIdx, c] of lines) {
-      if (b[a] && b[a] === b[bIdx] && b[a] === b[c]) return b[a];
-    }
-    return null;
   }
 
   processAction(playerId, payload) {
-    if (this.players.size === 2 && !this.rolesAssigned) {
-      this.assignRoles();
-      this.rolesAssigned = true;
+    console.log("[OddsAndEvens] processAction playerId:", playerId, payload);
+    const { gameAction, number } = payload;
+
+    if (!this.rolesAssigned && Object.keys(this.players).length === 2) {
+      this.assignGameRoles?.();
     }
-    const { gameAction, index } = payload;
-    if (gameAction !== "makeMove")
-      return { type: "error", message: "Unknown action." };
 
-    if (this.winner) return { message: "Game is over." };
-    if (this.currentTurn !== playerId) return { message: "Not your turn." };
+    if (gameAction !== "submitNumber") {
+      return {
+        playerId,
+        type: "error",
+        action: "gameError",
+        message: "Unknown action",
+      };
+    }
 
-    const mark = this.roles[playerId];
-    if (this.board[index]) return { message: "Cell already taken." };
-    this.board[index] = mark;
-    this.movesMade += 1;
+    this.choices[playerId] = number;
 
-    const winnerMark = this.checkWinner();
-    if (winnerMark) {
-      const winnerId = Object.keys(this.roles).find(
-        (id) => this.roles[id] === winnerMark
+    const ids = Object.keys(this.roles);
+    if (ids.every((id) => this.choices[id] !== undefined)) {
+      const total = this.choices[ids[0]] + this.choices[ids[1]];
+      const isEven = total % 2 === 0;
+      const winner = ids.find(
+        (id) => this.roles[id] === (isEven ? "even" : "odd")
       );
-      this.winner = winnerId;
-    } else if (this.movesMade >= 9) {
-      this.winner = "draw";
-    } else {
-      this.switchTurn?.(); // ⬅️ Call the shared turn logic
+      const loser = ids.find((id) => id !== winner);
+
+      return {
+        [ids[0]]: {
+          type: "game",
+          action: "gameAction",
+          message: `${winner === ids[0] ? "You win!" : "You lose!"}`,
+          yourChoice: this.choices[ids[0]],
+          opponentChoice: this.choices[ids[1]],
+          winner,
+          sum: total,
+        },
+        [ids[1]]: {
+          type: "game",
+          action: "gameAction",
+          message: `${winner === ids[1] ? "You win!" : "You lose!"}`,
+          yourChoice: this.choices[ids[1]],
+          opponentChoice: this.choices[ids[0]],
+          winner,
+          sum: total,
+        },
+      };
     }
 
     return {
       playerId,
       type: "game",
       action: "gameAction",
-      board: [...this.board],
-      currentTurn: this.currentTurn,
-      winner: this.winner,
-      message: this.winner
-        ? this.winner === "draw"
-          ? "It's a draw!"
-          : `Player ${this.winner} wins!`
-        : `Player ${playerId} made a move.`,
+      message: "Number submitted. Waiting for opponent...",
+      yourChoice: number,
     };
   }
 }
 
-const defaultExport = TicTacToe;
+const defaultExport = OddsAndEvens;

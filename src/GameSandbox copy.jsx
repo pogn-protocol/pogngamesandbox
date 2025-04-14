@@ -5,7 +5,7 @@ import { defaultClientCode, defaultServerCode } from "./initialCode";
 import CollapsedJson from "./components/CollapsedJson";
 import loadExternalScripts from "./utils/loadExternalScripts";
 import useTranspiledComponent from "./hooks/useTranspiledComponent";
-import * as gameController from "./utils/gameController";
+import * as firmware from "./utils/gameController";
 import { wrapGameComponent } from "./utils/GameShell";
 import * as gameUtils from "./utils/gameUtils";
 import BaseGame from "./utils/baseGame";
@@ -29,29 +29,189 @@ const GameSandbox = () => {
     await loadExternalScripts(userImports.filter(Boolean));
     try {
       const strippedServerCode = serverCode.replace(/export\s+default\s+/g, "");
-      const { default: GameClass } = new Function(
+      const fullServerCode = `
+  ${strippedServerCode}
+  return { default: typeof defaultExport !== "undefined" ? defaultExport : null };
+`;
+      const { default: UserGame } = new Function(
         "BaseGame",
         "TurnBasedGame",
         `${strippedServerCode}; return { default: typeof defaultExport !== "undefined" ? defaultExport : null };`
       )(BaseGame, TurnBasedGame);
+
+      if (typeof UserGame !== "function") {
+        throw new Error(
+          "Missing defaultExport = YourGameClass in server code."
+        );
+      }
+
+      // const GameClass =
+      //   turnBased && !UserGame.prototype.switchTurn
+      //     ? class WrappedGame extends TurnBasedGame {
+      //         constructor() {
+      //           const roleIds = Array.from({ length: numPlayers }, (_, i) =>
+      //             String(i + 1)
+      //           );
+
+      //           super({
+      //             baseGameOptions: {
+      //               minPlayers: numPlayers,
+      //               maxPlayers: numPlayers,
+      //               rounds: useMaxRounds ? maxRounds : Infinity,
+      //             },
+      //             roleList: roleIds,
+      //           });
+
+      //           const userGame = new UserGame();
+
+      //           // 🧠 Bind all methods from the user-defined class
+      //           for (const key of Object.getOwnPropertyNames(
+      //             UserGame.prototype
+      //           )) {
+      //             if (
+      //               key !== "constructor" &&
+      //               typeof userGame[key] === "function"
+      //             ) {
+      //               userGame[key] = userGame[key].bind(userGame);
+      //             }
+      //           }
+
+      //           // 🔁 Pass down runtime state and helper methods
+      //           userGame.switchTurn = this.switchTurn.bind(this);
+      //           userGame.getTurnState = this.getTurnState.bind(this);
+      //           userGame.getGameDetails = this.getGameDetails.bind(this);
+      //           userGame.nextRound = this.nextRound?.bind(this);
+
+      //           this.userGame = userGame;
+      //         }
+
+      //         processAction(playerId, payload) {
+      //           // 🔄 Sync turn-based state into the user-defined game
+      //           Object.assign(this.userGame, {
+      //             players: this.players,
+      //             roles: this.roles,
+      //             currentTurn: this.currentTurn,
+      //             round: this.round,
+      //             rounds: this.rounds,
+      //             turn: this.turn,
+      //             gameStatus: this.gameStatus,
+      //           });
+
+      //           const result = this.userGame.processAction(playerId, payload);
+
+      //           return {
+      //             ...result,
+      //             ...this.getTurnState(),
+      //           };
+      //         }
+      //       }
+      //     : UserGame;
+
+      const GameClass =
+        turnBased && !UserGame.prototype.switchTurn
+          ? class WrappedGame extends TurnBasedGame {
+              constructor() {
+                const roleIds = Array.from({ length: numPlayers }, (_, i) =>
+                  String(i + 1)
+                );
+                super({
+                  baseGameOptions: {
+                    minPlayers: numPlayers,
+                    maxPlayers: numPlayers,
+                    rounds: useMaxRounds ? maxRounds : Infinity,
+                  },
+                  roleList: roleIds,
+                });
+
+                const userGame = new UserGame();
+
+                for (const key of Object.getOwnPropertyNames(
+                  UserGame.prototype
+                )) {
+                  if (
+                    key !== "constructor" &&
+                    typeof userGame[key] === "function"
+                  ) {
+                    userGame[key] = userGame[key].bind(userGame);
+                  }
+                }
+
+                userGame.switchTurn = this.switchTurn.bind(this);
+                userGame.getTurnState = this.getTurnState.bind(this);
+                userGame.getGameDetails = this.getGameDetails.bind(this);
+                userGame.nextRound = this.nextRound?.bind(this);
+
+                this.userGame = userGame;
+              }
+
+              processAction(playerId, payload) {
+                Object.assign(this.userGame, {
+                  players: this.players,
+                  roles: this.roles,
+                  currentTurn: this.currentTurn,
+                  round: this.round,
+                  rounds: this.rounds,
+                  turn: this.turn,
+                  gameStatus: this.gameStatus,
+                });
+
+                const result = this.userGame.processAction(playerId, payload);
+
+                return {
+                  ...result,
+                  ...this.getTurnState(),
+                };
+              }
+            }
+          : class WrappedGame extends BaseGame {
+              constructor() {
+                super({
+                  minPlayers: numPlayers,
+                  maxPlayers: numPlayers,
+                  rounds: useMaxRounds ? maxRounds : Infinity,
+                });
+                this.userGame = new UserGame();
+                Object.getOwnPropertyNames(UserGame.prototype).forEach(
+                  (key) => {
+                    if (
+                      key !== "constructor" &&
+                      typeof this.userGame[key] === "function"
+                    ) {
+                      this.userGame[key] = this.userGame[key].bind(
+                        this.userGame
+                      );
+                    }
+                  }
+                );
+              }
+
+              processAction(playerId, payload) {
+                Object.assign(this.userGame, {
+                  players: this.players,
+                  roles: this.roles,
+                  round: this.round,
+                  rounds: this.rounds,
+                  gameStatus: this.gameStatus,
+                });
+
+                const result = this.userGame.processAction(playerId, payload);
+
+                return {
+                  ...result,
+                };
+              }
+            };
 
       if (typeof GameClass !== "function") {
         throw new Error(
           "Missing defaultExport = YourGameClass in server code."
         );
       }
-
-      const initialBroadcast = gameController.initGame({
+      const initialBroadcast = firmware.initServer({
         players: Array.from({ length: numPlayers }, (_, i) => String(i + 1)),
+        turnBased,
+        rounds: useMaxRounds ? maxRounds : null,
         GameClass,
-        options: {
-          baseGameOptions: {
-            minPlayers: numPlayers,
-            maxPlayers: numPlayers,
-            rounds: useMaxRounds ? maxRounds : Infinity,
-          },
-          roleList: Array.from({ length: numPlayers }, (_, i) => String(i + 1)),
-        },
       });
 
       if (initialBroadcast && typeof initialBroadcast === "object") {
@@ -99,7 +259,6 @@ const GameSandbox = () => {
           GameJsonDebug,
         ]
       );
-
       if (!EvaluatedComponent) {
         throw new Error(
           "Missing defaultExport = YourReactComponent in client code."
@@ -114,16 +273,19 @@ const GameSandbox = () => {
         console.log("sendToServer", { relayId, payload });
         const { playerId } = payload || {};
         try {
-          const res = gameController.processGameMessage({ payload });
+          const res = firmware.processGameMessage({
+            payload,
+          });
           console.log("Server response:", res);
           if (res && typeof res === "object") {
             setPlayerStates((prev) => {
               const newStates = { ...prev };
               for (const pid in res) {
-                if (!pid || pid === "undefined") continue;
+                if (!pid || pid === "undefined") continue; // 🚨 skip bad keys
+
                 newStates[pid] = {
                   lastInput:
-                    pid === playerId ? payload : newStates[pid]?.lastInput,
+                    pid == playerId ? payload : newStates[pid]?.lastInput,
                   lastResponse: res[pid]?.payload || {},
                 };
               }
@@ -147,8 +309,8 @@ const GameSandbox = () => {
             for (const pid in errorBroadcast) {
               newStates[pid] = {
                 lastInput:
-                  pid === playerId ? payload : newStates[pid]?.lastInput,
-                lastResponse: errorBroadcast[pid]?.payload || {},
+                  pid == playerId ? payload : newStates[pid]?.lastInput,
+                lastResponse: errorBroadcast[pid]?.payload || {}, // ✅ FIXED: extract only .payload to gameState
               };
             }
             return newStates;

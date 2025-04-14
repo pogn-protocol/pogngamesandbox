@@ -14,6 +14,11 @@ class BaseGame {
     this.rounds = options.rounds;
   }
 
+  assignRoles(roleList = []) {
+    this.roleList = roleList;
+    return this.assignRolesShuffled(roleList);
+  }
+
   assignRolesShuffled(roleList) {
     const playerIds = Array.from(this.players.keys());
     const shuffled = [...playerIds].sort(() => Math.random() - 0.5);

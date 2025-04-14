@@ -14,12 +14,12 @@ class TurnBasedGame extends BaseGame {
     this.turn = 1; // ✅ NEW
   }
 
-  assignRoles() {
-    const assigned = this.assignRolesShuffled(this.roleList);
-    this.currentTurn = Object.keys(assigned)[0];
-    console.log("[TurnBasedGame] Roles assigned:", assigned);
-    return assigned;
-  }
+  // assignRoles() {
+  //   const assigned = this.assignRolesShuffled(this.roleList);
+  //   this.currentTurn = Object.keys(assigned)[0];
+  //   console.log("[TurnBasedGame] Roles assigned:", assigned);
+  //   return assigned;
+  // }
 
   switchTurn() {
     if (this.gameStatus === "complete") {
