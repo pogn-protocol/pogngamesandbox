@@ -1,5 +1,3 @@
-// REFACTORED GameSandbox with per-player state, clean transpile hook, and imported initial client/server code
-
 import React, { useState, useRef } from "react";
 import { JsonView } from "react-json-view-lite";
 import "react-json-view-lite/dist/index.css";
@@ -9,6 +7,9 @@ import loadExternalScripts from "./utils/loadExternalScripts";
 import useTranspiledComponent from "./hooks/useTranspiledComponent";
 import * as firmware from "./utils/serverFirmware";
 import { wrapGameComponent } from "./utils/GameShell";
+import * as gameUtils from "./utils/gameUtils";
+import BaseGame from "./utils/baseGame";
+import TurnBasedGame from "./utils/turnBasedGame";
 
 const GameSandbox = () => {
   const componentRef = useRef(null);
@@ -27,32 +28,79 @@ const GameSandbox = () => {
   const handleRun = async () => {
     await loadExternalScripts(userImports.filter(Boolean));
     try {
-      const firmwareHeader = `
-        const serverState = globalThis.__firmware.serverState;
-        const initServer = globalThis.__firmware.initServer;
-        const broadcastToAllPlayers = globalThis.__firmware.broadcastToAllPlayers;
-        const updatePlayerData = globalThis.__firmware.updatePlayerData;
-      `;
       const strippedServerCode = serverCode.replace(/export\s+default\s+/g, "");
-
       const fullServerCode = `
   ${strippedServerCode}
   return { default: typeof defaultExport !== "undefined" ? defaultExport : null };
 `;
+      const { default: UserGame } = new Function(
+        "BaseGame",
+        "TurnBasedGame",
+        `${strippedServerCode}; return { default: typeof defaultExport !== "undefined" ? defaultExport : null };`
+      )(BaseGame, TurnBasedGame);
 
-      const { default: GameClass } = new Function(fullServerCode)();
+      if (typeof UserGame !== "function") {
+        throw new Error(
+          "Missing defaultExport = YourGameClass in server code."
+        );
+      }
+
+      const GameClass =
+        turnBased && !UserGame.prototype.switchTurn
+          ? class WrappedGame extends TurnBasedGame {
+              constructor() {
+                const roleIds = Array.from({ length: numPlayers }, (_, i) =>
+                  String(i + 1)
+                );
+
+                super({
+                  baseGameOptions: {
+                    minPlayers: numPlayers,
+                    maxPlayers: numPlayers,
+                    rounds: useMaxRounds ? maxRounds : Infinity,
+                  },
+                  roleList: roleIds,
+                });
+
+                this.userGame = new UserGame();
+                this.userGame.switchTurn = this.switchTurn.bind(this);
+                this.userGame.nextRound = this.nextRound?.bind(this);
+                this.userGame.getTurnState = this.getTurnState?.bind(this);
+                this.userGame.getGameDetails = this.getGameDetails?.bind(this);
+                this.userGame.gameStatus = this.gameStatus;
+              }
+
+              processAction(pid, payload) {
+                this.userGame.gameStatus = this.gameStatus;
+                this.userGame.round = this.round;
+                this.userGame.rounds = this.rounds;
+                this.userGame.turn = this.turn;
+                this.userGame.currentTurn = this.currentTurn;
+                this.userGame.roles = this.roles;
+                this.userGame.players = this.players;
+                this.userGame.roleList = this.roleList;
+
+                const result = this.userGame.processAction(pid, payload);
+
+                return {
+                  ...result,
+                  ...this.getTurnState?.(),
+                };
+              }
+            }
+          : UserGame;
 
       if (typeof GameClass !== "function") {
         throw new Error(
           "Missing defaultExport = YourGameClass in server code."
         );
       }
-      const initialBroadcast = firmware.initServer(
-        Array.from({ length: numPlayers }, (_, i) => i + 1),
+      const initialBroadcast = firmware.initServer({
+        players: Array.from({ length: numPlayers }, (_, i) => String(i + 1)),
         turnBased,
-        useMaxRounds ? maxRounds : null,
-        GameClass
-      );
+        rounds: useMaxRounds ? maxRounds : null,
+        GameClass,
+      });
 
       if (initialBroadcast && typeof initialBroadcast === "object") {
         setPlayerStates((prev) => {
@@ -67,11 +115,43 @@ const GameSandbox = () => {
         });
       }
 
+      const {
+        useLocalGameState,
+        useRoleRequester,
+        GameResultDisplay,
+        GameJsonDebug,
+      } = gameUtils;
+
       const EvaluatedComponent = await transpile(
         clientCode,
-        ["React", "sendGameMessage", "gameState", "playerId", "gameId"],
-        [React, () => {}, {}, 0, ""]
+        [
+          "React",
+          "sendGameMessage",
+          "gameState",
+          "playerId",
+          "gameId",
+          "useLocalGameState",
+          "useRoleRequester",
+          "GameResultDisplay",
+          "GameJsonDebug",
+        ],
+        [
+          React,
+          () => {},
+          {},
+          0,
+          "",
+          useLocalGameState,
+          useRoleRequester,
+          GameResultDisplay,
+          GameJsonDebug,
+        ]
       );
+      if (!EvaluatedComponent) {
+        throw new Error(
+          "Missing defaultExport = YourReactComponent in client code."
+        );
+      }
 
       const WrappedComponent = wrapGameComponent(EvaluatedComponent);
       componentRef.current = WrappedComponent;
@@ -108,7 +188,7 @@ const GameSandbox = () => {
               payload: {
                 error: err.message,
                 triggeredBy: playerId,
-                youAre: Number(id),
+                youAre: id,
               },
             };
           }
@@ -201,14 +281,8 @@ const GameSandbox = () => {
       {PlayerGameComponent && (
         <div className="flex flex-wrap gap-4 border border-gray-300 rounded p-4 bg-white">
           {Array.from({ length: numPlayers }, (_, i) => {
-            const playerId = i + 1;
+            const playerId = String(i + 1);
             const playerState = playerStates[playerId] || {};
-            // console.log("🎮 Rendering PlayerGameComponent", {
-            //   playerId,
-            //   gameState: playerState.lastResponse,
-            //   gameId: `game-${playerId}`,
-            // });
-
             return (
               <div
                 key={playerId}

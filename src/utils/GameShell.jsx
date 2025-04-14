@@ -2,7 +2,7 @@ import React from "react";
 
 export default function GameShell({ playerId, gameState, children }) {
   console.log("GameShell:", playerId, gameState, children);
-  const roundNumber = gameState?.roundNumber;
+  const round = gameState?.round;
   const currentTurn = gameState?.currentTurn;
   const isMyTurn =
     currentTurn == null || Number(currentTurn) === Number(playerId);
@@ -12,7 +12,7 @@ export default function GameShell({ playerId, gameState, children }) {
       <div className="p-4 bg-red-100 rounded shadow space-y-4 text-center">
         <h2 className="text-xl font-bold text-red-700">🛑 Game Over</h2>
         <p>{gameState?.message}</p>
-        <p>Rounds Played: {roundNumber}</p>
+        <p>Rounds Played: {round}</p>
       </div>
     );
   }
@@ -22,13 +22,12 @@ export default function GameShell({ playerId, gameState, children }) {
       <div className="bg-blue-200 text-black text-center p-2 font-bold rounded">
         🎮 Game Client Ready Player: ({playerId})
       </div>
-
-      {roundNumber != null && (
+      {round != null && (
         <p className="text-sm text-purple-700 font-bold text-center">
-          🌀 Round: {roundNumber}
+          🌀 Round: {round}
         </p>
       )}
-
+      {gameState?.role && <p>🧩 Your Role: {gameState.role}</p>}
       {currentTurn != null && (
         <div className="text-center text-sm font-semibold mt-2">
           {isMyTurn ? (
@@ -38,7 +37,6 @@ export default function GameShell({ playerId, gameState, children }) {
           )}
         </div>
       )}
-
       {children}
     </div>
   );

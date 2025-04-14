@@ -41,5 +41,3 @@ function GameComponent({ sendGameMessage, gameState, playerId, gameId }) {
     </div>
   );
 }
-
-const defaultExport = GameComponent;

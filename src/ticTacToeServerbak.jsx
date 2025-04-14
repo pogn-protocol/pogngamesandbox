@@ -5,19 +5,16 @@ class TicTacToe {
     this.currentTurn = null;
     this.winner = null;
     this.movesMade = 0;
-    this.rolesAssigned = false;
   }
 
   assignRoles() {
-    if (!this.fixedRoles && this.roles) {
-      const playerIds = Object.keys(this.roles);
-      if (playerIds.length === 2) {
-        const [p1, p2] = playerIds;
-        this.roles[p1] = "X";
-        this.roles[p2] = "O";
-        this.fixedRoles = true;
-      }
-    }
+    const ids = Array.from(this.players.keys());
+    if (ids.length < 2) throw new Error("TicTacToe needs 2 players.");
+    this.currentTurn = ids[0];
+    this.roles = {
+      [ids[0]]: "X",
+      [ids[1]]: "O",
+    };
   }
 
   checkWinner() {
@@ -39,9 +36,10 @@ class TicTacToe {
   }
 
   processAction(playerId, payload) {
-    if (this.players.size === 2 && !this.rolesAssigned) {
-      this.assignRoles();
-      this.rolesAssigned = true;
+    console.log("[TicTacToe] processAction:", playerId, payload);
+    console.log("[TicTacToe] Current turn:", this.currentTurn);
+    if (this.currentTurn === null) {
+      throw new Error("Game not initialized. Call assignRoles first.");
     }
     const { gameAction, index } = payload;
     if (gameAction !== "makeMove")
@@ -52,6 +50,7 @@ class TicTacToe {
 
     const mark = this.roles[playerId];
     if (this.board[index]) return { message: "Cell already taken." };
+
     this.board[index] = mark;
     this.movesMade += 1;
 
@@ -64,7 +63,13 @@ class TicTacToe {
     } else if (this.movesMade >= 9) {
       this.winner = "draw";
     } else {
+      console.log("[TicTacToe] No winner yet, moves made:", this.movesMade);
+      console.log("[TicTacToe] Current turn:", this.currentTurn);
+      // const ids = Array.from(this.players.keys());
+      // const next = ids.find((id) => id !== this.currentTurn);
+      // this.currentTurn = next;
       this.switchTurn?.(); // ⬅️ Call the shared turn logic
+      console.log("[TicTacToe] Next turn:", this.currentTurn);
     }
 
     return {
