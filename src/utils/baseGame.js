@@ -8,7 +8,7 @@ class BaseGame {
     this.gameStatus = "waiting";
     this.gameLog = [];
     this.round = 1;
-    this.rounds = options.rounds || 1;
+    this.rounds = options.rounds || Infinity;
   }
 
   assignRoles(roleList = []) {
