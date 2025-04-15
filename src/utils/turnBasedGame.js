@@ -2,9 +2,7 @@ import BaseGame from "./baseGame.js";
 
 class TurnBasedGame extends BaseGame {
   constructor(options = {}) {
-    if (!options.baseGameOptions.rounds) {
-      throw new Error("TurnBasedGame requires rounds in baseGameOptions.");
-    }
+    console.log("[TurnBasedGame] Constructor called with options:", options);
     super(options.baseGameOptions);
     this.roleList = options.roleList || [];
     this.currentTurn = null;
@@ -13,13 +11,6 @@ class TurnBasedGame extends BaseGame {
 
     this.turn = 1; // ✅ NEW
   }
-
-  // assignRoles() {
-  //   const assigned = this.assignRolesShuffled(this.roleList);
-  //   this.currentTurn = Object.keys(assigned)[0];
-  //   console.log("[TurnBasedGame] Roles assigned:", assigned);
-  //   return assigned;
-  // }
 
   switchTurn() {
     if (this.gameStatus === "complete") {
@@ -64,11 +55,18 @@ class TurnBasedGame extends BaseGame {
   }
 
   getGameDetails() {
-    return {
-      ...super.getGameDetails(),
+    console.log("[TurnBasedGame] getGameDetails called.");
+    let superDetails = super.getGameDetails();
+    console.log("[TurnBasedGame] Super game details:", superDetails);
+    let turnBasedDetails = {
       currentTurn: this.currentTurn,
-      winner: this.winner,
-      turn: this.turn, // ✅ Include it here to
+      //gameStatus: this.gameStatus,
+      turn: this.turn, // ✅ Include turn number
+    };
+    console.log("[TurnBasedGame] Turn-based game details:", turnBasedDetails);
+    return {
+      ...superDetails,
+      ...turnBasedDetails,
     };
   }
 }

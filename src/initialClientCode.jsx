@@ -75,8 +75,8 @@ function GameComponent({ sendGameMessage, gameState, playerId, gameId }) {
 
   // Get game data from gameState
   const roles = gameState?.roles || {};
-  const currentRound = gameState?.currentRound || 1;
-  const maxRounds = gameState?.maxRounds || 5;
+  const currentRound = gameState?.round || "NaN";
+  const maxRounds = gameState?.rounds || "NaN";
   const scores = gameState?.scores || {};
   const gameStatus = gameState?.gameStatus;
   const winner = gameState?.winner;
@@ -172,7 +172,7 @@ function GameComponent({ sendGameMessage, gameState, playerId, gameId }) {
             </div>
           )}
 
-          {gameStatus === "completed" && (
+          {gameStatus === "complete" && (
             <div
               className={`p-4 rounded-lg text-center font-bold text-lg ${
                 winner === playerId

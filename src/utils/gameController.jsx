@@ -1,10 +1,60 @@
 import BaseGame from "./baseGame.js";
 import TurnBasedGame from "./turnBasedGame.js";
 
+//notes for refactor
+//sendGameMessage needs payload and action
+// sendGameMessage({payload: {
+// action: "gameAction",
+
+//   gameAction: "chooseNumber",
+//   playerId,
+//   gameId,  <<< doesn't need gameid
+//   number,
+// }});
+// need to always return gameId
 export const gameState = {
   playerData: {},
   gameInstance: null,
 };
+
+// export function initGame({ players = [], GameClass = null, options = {} }) {
+//   gameState.playerData = {};
+
+//   players.forEach((id) => {
+//     gameState.playerData[id] = { messages: [] };
+//   });
+
+//   let result = null;
+
+//   if (typeof GameClass === "function") {
+//     const instance = new GameClass(options);
+
+//     instance.players = new Map(players.map((p) => [p, { ready: false }]));
+//     instance.roles = instance.roles || {};
+
+//     gameState.gameInstance = instance;
+
+//     if (typeof instance.init === "function") {
+//       result = instance.init();
+//     }
+//   }
+
+//   const broadcast = {};
+//   for (const id of players) {
+//     broadcast[id] = {
+//       payload: {
+//         type: "game",
+//         action: "gameAction",
+//         playerId: id,
+//         youAre: id,
+//         role: gameState.gameInstance?.roles?.[id],
+//         ...(result || {}),
+//       },
+//     };
+//   }
+
+//   return broadcast;
+// }
 
 export function initGame({ players = [], GameClass = null, options = {} }) {
   gameState.playerData = {};
@@ -13,80 +63,15 @@ export function initGame({ players = [], GameClass = null, options = {} }) {
     gameState.playerData[id] = { messages: [] };
   });
 
-  let result = null;
-
   if (typeof GameClass === "function") {
     const instance = new GameClass(options);
-
-    // Inject base class helpers
-    const tempBase = new BaseGame(options.baseGameOptions || {});
-    const baseHelpers = [
-      "assignRoles",
-      "assignRolesShuffled",
-      "getGameDetails",
-      "nextRound",
-    ];
-    for (const key of baseHelpers) {
-      if (typeof tempBase[key] === "function") {
-        instance[key] = tempBase[key].bind(instance);
-      }
-    }
-
-    // Inject turn-based helpers, which override base if present
-    const tempTurn = new TurnBasedGame({
-      baseGameOptions: options.baseGameOptions || {},
-      roleList: options.roleList || [],
-    });
-    const turnHelpers = ["switchTurn", "getTurnState"];
-    for (const key of turnHelpers) {
-      if (typeof tempTurn[key] === "function") {
-        instance[key] = tempTurn[key].bind(instance);
-      }
-    }
-
-    //instance.players = new Map(players.map((p) => [p, {}]));
     instance.players = new Map(players.map((p) => [p, { ready: false }]));
-    instance.roles = {}; // Ensure roles object exists
-
-    // Inject assignRolesShuffled if not present
-    if (
-      options?.roleList &&
-      typeof instance.assignRolesShuffled !== "function"
-    ) {
-      instance.assignRolesShuffled =
-        tempBase.assignRolesShuffled.bind(instance);
-    }
-
-    // Assign roles if roleList is provided
-    if (
-      typeof instance.assignRolesShuffled === "function" &&
-      options?.roleList
-    ) {
-      //instance.assignRolesShuffled(options.roleList);
-    }
-
+    instance.roles = instance.roles || {};
     gameState.gameInstance = instance;
-
-    // if (typeof instance.init === "function") {
-    //   result = instance.init();
-    // }
   }
 
-  const broadcast = {};
-  for (const id of players) {
-    broadcast[id] = {
-      payload: {
-        type: "game",
-        action: "gameAction",
-        playerId: id,
-        youAre: id,
-        role: gameState.gameInstance?.roles?.[id],
-        ...(result || {}),
-      },
-    };
-  }
-
-  return broadcast;
+  // Don’t broadcast here
+  return {};
 }
 
 export function processGameMessage(msg) {
@@ -115,6 +100,9 @@ export function processGameMessage(msg) {
     }
 
     if (game.getGameDetails()?.gameStatus === "in-progress") {
+      console.warn(
+        "[processGameMessage] Game already in progress, ignoring player ready."
+      );
       return {}; // do nothing
     }
 
@@ -183,7 +171,9 @@ export function processGameMessage(msg) {
 
   let result;
   try {
+    console.log("[processGameMessage] Processing action:", payload);
     result = game.processAction(playerId, payload);
+    console.log("[processGameMessage] Game action result:", result);
   } catch (err) {
     return {
       [playerId]: {

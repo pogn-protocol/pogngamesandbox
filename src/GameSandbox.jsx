@@ -11,6 +11,13 @@ import * as gameUtils from "./utils/gameUtils";
 import BaseGame from "./utils/baseGame";
 import TurnBasedGame from "./utils/turnBasedGame";
 
+const {
+  useLocalGameState,
+  useRoleRequester,
+  GameResultDisplay,
+  GameJsonDebug,
+} = gameUtils;
+
 const GameSandbox = () => {
   const componentRef = useRef(null);
   const { transpile } = useTranspiledComponent();
@@ -29,19 +36,96 @@ const GameSandbox = () => {
     await loadExternalScripts(userImports.filter(Boolean));
     try {
       const strippedServerCode = serverCode.replace(/export\s+default\s+/g, "");
-      const { default: GameClass } = new Function(
-        "BaseGame",
-        "TurnBasedGame",
-        `${strippedServerCode}; return { default: typeof defaultExport !== "undefined" ? defaultExport : null };`
-      )(BaseGame, TurnBasedGame);
+      // const { default: GameClass } = new Function(
+      //   "BaseGame",
+      //   "TurnBasedGame",
+      //   `${strippedServerCode}; return { default: typeof defaultExport !== "undefined" ? defaultExport : null };`
+      // )(BaseGame, TurnBasedGame);
 
-      if (typeof GameClass !== "function") {
+      // if (typeof GameClass !== "function") {
+      //   throw new Error(
+      //     "Missing defaultExport = YourGameClass in server code."
+      //   );
+
+      // }
+      const module = { exports: {} };
+      const exports = module.exports;
+
+      new Function("exports", "module", `"use strict";\n${strippedServerCode}`)(
+        exports,
+        module
+      );
+
+      const UserGameLogic = module.exports?.default || module.exports;
+
+      if (!UserGameLogic || typeof UserGameLogic !== "function") {
         throw new Error(
-          "Missing defaultExport = YourGameClass in server code."
+          "Missing or invalid default export. You must export a class using `export default class MyGame {}` or `module.exports = class MyGame {}`."
         );
       }
 
-      const initialBroadcast = gameController.initGame({
+      // class AutoGame extends (turnBased ? TurnBasedGame : BaseGame) {
+      //   constructor(options) {
+      //     super(options.baseGameOptions || {});
+      //     const userInstance = new UserGameLogic(options);
+
+      //     // Copy instance fields (not functions)
+      //     Object.assign(this, userInstance);
+
+      //     // Dynamically patch method calls using Proxy
+      //     const userProto = Object.getPrototypeOf(userInstance);
+      //     const self = this;
+
+      //     const proxy = new Proxy(this, {
+      //       get(target, prop, receiver) {
+      //         // Prefer user-defined methods
+      //         if (typeof userProto[prop] === "function") {
+      //           return userProto[prop].bind(self);
+      //         }
+
+      //         // Fallback to built-in methods
+      //         const value = Reflect.get(target, prop, receiver);
+      //         return typeof value === "function" ? value.bind(self) : value;
+      //       },
+      //     });
+
+      //     return proxy;
+      //   }
+      // }
+
+      // const GameClass = AutoGame;
+      function createAutoGameClass(UserGameLogic, turnBased = false) {
+        const ParentGame = turnBased ? TurnBasedGame : BaseGame;
+
+        return class AutoGame extends ParentGame {
+          constructor(options) {
+            super(options.baseGameOptions || {});
+
+            const userInstance = new UserGameLogic(options);
+            Object.assign(this, userInstance); // copy fields
+
+            // Temporarily replace prototype with user's methods + super chain
+            const baseProto = Object.getPrototypeOf(this);
+            const userProto = Object.getPrototypeOf(userInstance);
+            const combinedProto = Object.create(baseProto);
+
+            // Copy only user-defined methods
+            for (const key of Object.getOwnPropertyNames(userProto)) {
+              if (
+                key !== "constructor" &&
+                typeof userProto[key] === "function"
+              ) {
+                combinedProto[key] = userProto[key];
+              }
+            }
+
+            Object.setPrototypeOf(this, combinedProto);
+          }
+        };
+      }
+      const GameClass = createAutoGameClass(UserGameLogic, turnBased);
+
+      gameController.initGame({
         players: Array.from({ length: numPlayers }, (_, i) => String(i + 1)),
         GameClass,
         options: {
@@ -54,25 +138,52 @@ const GameSandbox = () => {
         },
       });
 
-      if (initialBroadcast && typeof initialBroadcast === "object") {
-        setPlayerStates((prev) => {
-          const newStates = { ...prev };
-          for (const pid in initialBroadcast) {
+      const instance = gameController.gameState.gameInstance;
+      let result = {};
+      if (instance && typeof instance.init === "function") {
+        const initResult = instance.init();
+        const playerIds = Array.from(instance.players.keys());
+
+        for (const id of playerIds) {
+          result[id] = {
+            payload: {
+              type: "game",
+              action: "gameAction",
+              playerId: id,
+              youAre: id,
+              role: instance.roles?.[id],
+              ...(initResult || {}),
+            },
+          };
+        }
+      }
+
+      // ✅ Now apply result to UI state
+      if (result && typeof result === "object") {
+        setPlayerStates(() => {
+          const newStates = {};
+          for (const pid of Object.keys(result)) {
             newStates[pid] = {
               lastInput: null,
-              lastResponse: initialBroadcast[pid]?.payload || {},
+              lastResponse: result[pid]?.payload || {},
             };
           }
           return newStates;
         });
       }
 
-      const {
-        useLocalGameState,
-        useRoleRequester,
-        GameResultDisplay,
-        GameJsonDebug,
-      } = gameUtils;
+      // if (initialBroadcast && typeof initialBroadcast === "object") {
+      //   setPlayerStates((prev) => {
+      //     const newStates = { ...prev };
+      //     for (const pid in initialBroadcast) {
+      //       newStates[pid] = {
+      //         lastInput: null,
+      //         lastResponse: initialBroadcast[pid]?.payload || {},
+      //       };
+      //     }
+      //     return newStates;
+      //   });
+      // }
 
       const EvaluatedComponent = await transpile(
         clientCode,
@@ -271,14 +382,23 @@ const GameSandbox = () => {
             ([playerId, { lastInput, lastResponse }]) => (
               <div key={playerId}>
                 <h3 className="font-semibold">Player {playerId}</h3>
-                <div className="border rounded p-2 bg-gray-100 text-[12px] leading-[1.2] text-left">
+                {/* <div className="border rounded p-2 bg-gray-100 text-[12px] leading-[1.2] text-left">
                   <h4 className="font-semibold">Sent to Server</h4>
                   <CollapsedJson data={lastInput} />
                 </div>
                 <div className="border rounded p-2 bg-gray-100 text-[12px] leading-[1.2] text-left">
                   <h4 className="font-semibold">Received from Server</h4>
                   <CollapsedJson data={lastResponse} />
-                </div>
+                </div> */}
+
+                {/* <GameResultDisplay
+                  gameState={lastResponse}
+                  playerId={playerId}
+                /> */}
+                <GameJsonDebug
+                  sentToServer={lastInput}
+                  receivedFromServer={lastResponse}
+                />
               </div>
             )
           )}

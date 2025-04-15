@@ -1,78 +1,181 @@
 class OddsAndEvens {
   constructor() {
-    this.choices = {};
-    this.rolesAssigned = false;
+    //super(); // Call the parent constructor
+    // super({
+    //   baseGameOptions: {
+    //     minPlayers: 2,
+    //     maxPlayers: 2,
+    //     rounds: 5, // Using the rounds property from BaseGame
+    //   },
+    //   roleList: ["odds", "evens"], // Using roleList from TurnBasedGame
+    // });
+    this.minPlayers = 2; // Minimum players for the game
+    this.maxPlayers = 2; // Maximum players for the game
+    //this.rounds = 1; // Total rounds for the game
+    this.round = 1; // Current round
+    this.roleList = ["odds", "evens"]; // Roles for the game
+
+    this.playerChoices = {}; // Stores each player's choice for the current round
+    this.scores = {}; // Track player scores
+    this.roundResults = []; // Track results of each round
   }
 
-  assignGameRoles() {
-    const ids = Object.keys(this.roles);
-    if (ids.length === 2 && !this.rolesAssigned) {
-      const [p1, p2] = ids;
-      this.roles[p1] = "odd";
-      this.roles[p2] = "even";
-      this.rolesAssigned = true;
-      console.log("[OddsAndEvens] Roles:", this.roles);
-    }
+  init() {
+    console.log("[OddsAndEvens] init() called");
+    this.roles = this.assignRoles(["odds", "evens"]);
+    // this.currentTurn = Object.keys(this.roles)[0];
+    Object.keys(this.roles).forEach((playerId) => {
+      this.scores[playerId] = 0;
+    });
+
+    console.log("[OddsAndEvens] Game started with roles:", this.roles);
+    console.log("[OddsAndEvens] game details:", this.getOddsAndEvensDetails());
+
+    return {
+      gameAction: "gameStarted",
+      roles: this.roles,
+      round: this.round,
+      scores: this.scores,
+      gameStatus: this.gameStatus,
+      rounds: this.rounds,
+      message: "Game started! Choose a number between 1 and 5.",
+    };
+  }
+
+  getOddsAndEvensDetails() {
+    return {
+      ...this.getGameDetails(), // Include game details from BaseGame
+      gameType: "OddsAndEvens",
+      roundResults: this.roundResults,
+      scores: this.scores,
+    };
   }
 
   processAction(playerId, payload) {
-    console.log("[OddsAndEvens] processAction playerId:", playerId, payload);
     const { gameAction, number } = payload;
 
-    if (!this.rolesAssigned && Object.keys(this.players).length === 2) {
-      this.assignGameRoles?.();
+    console.log("[OddsAndEvens] processAction called with:", payload);
+    console.log("[OddsAndEvens] playerId:", playerId);
+
+    if (gameAction !== "chooseNumber") {
+      return { type: "error", message: "Unknown action." };
     }
 
-    if (gameAction !== "submitNumber") {
+    if (this.gameStatus === "complete") {
+      return { message: "Game is over." };
+    }
+
+    if (typeof number !== "number" || number < 1 || number > 5) {
+      return {
+        type: "error",
+        message: "Please choose a number between 1 and 5.",
+      };
+    }
+
+    this.playerChoices[playerId] = number;
+    this.logAction({
+      logEntry: `Player ${playerId} chose ${number}`,
+      playerId,
+      action: "chooseNumber",
+      value: number,
+    });
+
+    const playerIds = Object.keys(this.roles);
+    const allPlayersChosen = playerIds.every(
+      (id) => this.playerChoices[id] !== undefined
+    );
+
+    if (!allPlayersChosen) {
       return {
         playerId,
-        type: "error",
-        action: "gameError",
-        message: "Unknown action",
+        gameAction: "numberChosen",
+        round: this.round,
+        rounds: this.rounds,
+        message: `Player ${playerId} chose number.`,
+        private: { yourChoice: number },
       };
     }
 
-    this.choices[playerId] = number;
+    // Calculate results
+    const player1Id = playerIds[0];
+    const player2Id = playerIds[1];
+    const sum = this.playerChoices[player1Id] + this.playerChoices[player2Id];
+    const isOdd = sum % 2 === 1;
 
-    const ids = Object.keys(this.roles);
-    if (ids.every((id) => this.choices[id] !== undefined)) {
-      const total = this.choices[ids[0]] + this.choices[ids[1]];
-      const isEven = total % 2 === 0;
-      const winner = ids.find(
-        (id) => this.roles[id] === (isEven ? "even" : "odd")
-      );
-      const loser = ids.find((id) => id !== winner);
+    // Determine winner of this round
+    let roundWinnerId = null;
+    playerIds.forEach((id) => {
+      if (
+        (this.roles[id] === "odds" && isOdd) ||
+        (this.roles[id] === "evens" && !isOdd)
+      ) {
+        roundWinnerId = id;
+        this.scores[id]++;
+      }
+    });
 
-      return {
-        [ids[0]]: {
-          type: "game",
-          action: "gameAction",
-          message: `${winner === ids[0] ? "You win!" : "You lose!"}`,
-          yourChoice: this.choices[ids[0]],
-          opponentChoice: this.choices[ids[1]],
-          winner,
-          sum: total,
-        },
-        [ids[1]]: {
-          type: "game",
-          action: "gameAction",
-          message: `${winner === ids[1] ? "You win!" : "You lose!"}`,
-          yourChoice: this.choices[ids[1]],
-          opponentChoice: this.choices[ids[0]],
-          winner,
-          sum: total,
-        },
-      };
+    // Save round result
+    this.roundResults.push({
+      round: this.round,
+      choices: { ...this.playerChoices },
+      sum,
+      isOdd,
+      roundWinner: roundWinnerId,
+    });
+
+    // Reset choices for next round
+    this.playerChoices = {};
+
+    // Check if game is over
+    const isLastRound = this.round >= this.rounds;
+
+    if (isLastRound) {
+      this.gameStatus = "complete"; // Using consistent status from BaseGame
+
+      // Determine overall winner
+      const player1Score = this.scores[player1Id];
+      const player2Score = this.scores[player2Id];
+
+      if (player1Score > player2Score) {
+        this.winner = player1Id;
+      } else if (player2Score > player1Score) {
+        this.winner = player2Id;
+      } else {
+        this.winner = "draw";
+      }
+    } else {
+      // Move to next round using BaseGame's nextRound method
+      this.nextRound();
+      // Switch turns using TurnBasedGame's switchTurn method
+      //this.switchTurn();
     }
 
+    // Create result message
+    const lastResult = this.roundResults[this.roundResults.length - 1];
+    const roundResultMessage = `Round ${lastResult.round}: ${player1Id} chose ${
+      lastResult.choices[player1Id]
+    } and ${player2Id} chose ${lastResult.choices[player2Id]}. Sum: ${sum} (${
+      isOdd ? "Odd" : "Even"
+    })`;
+
+    // Return game state
     return {
-      playerId,
-      type: "game",
-      action: "gameAction",
-      message: "Number submitted. Waiting for opponent...",
-      yourChoice: number,
+      gameAction: "roundCompleted",
+      ...this.getOddsAndEvensDetails(), // Include all game details from all parent classes
+      lastRoundResult: lastResult,
+      winner: this.winner,
+
+      message:
+        this.gameStatus === "complete"
+          ? `${roundResultMessage} Game over! ${
+              this.winner === "draw"
+                ? "It's a draw!"
+                : `Player ${this.winner} wins!`
+            }`
+          : `${roundResultMessage} Starting round ${this.round}!`,
     };
   }
 }
 
-const defaultExport = OddsAndEvens;
+//const defaultExport = OddsAndEvens;
+module.exports = OddsAndEvens;

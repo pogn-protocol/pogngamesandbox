@@ -1,4 +1,9 @@
 import React from "react";
+import {
+  useLocalGameState,
+  GameResultDisplay,
+  GameJsonDebug,
+} from "../utils/gameUtils";
 
 export default function GameShell({ playerId, gameState, children }) {
   console.log("GameShell:", playerId, gameState, children);
@@ -46,7 +51,7 @@ export function wrapGameComponent(UserComponent) {
   return function Wrapped(props) {
     return (
       <GameShell playerId={props.playerId} gameState={props.gameState}>
-        <UserComponent {...props} />
+        <UserComponent {...props} useLocalGameState={useLocalGameState} />
       </GameShell>
     );
   };

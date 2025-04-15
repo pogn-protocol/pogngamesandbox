@@ -1,17 +1,14 @@
 class BaseGame {
   constructor(options = {}) {
+    console.log("[BaseGame] Constructor called with options:", options);
     this.players = new Map();
-    this.roles = {}; // playerId -> role
+    this.roles = {};
     this.minPlayers = options.minPlayers || 0;
     this.maxPlayers = options.maxPlayers || 0;
     this.gameStatus = "waiting";
     this.gameLog = [];
     this.round = 1;
-    if (!options.rounds) {
-      throw new Error("Rounds not defined");
-    }
-    console.log("[BaseGame] Rounds:", options.rounds);
-    this.rounds = options.rounds;
+    this.rounds = options.rounds || 0;
   }
 
   assignRoles(roleList = []) {
@@ -52,12 +49,16 @@ class BaseGame {
 
   getGameDetails() {
     console.log("[BaseGame] getGameDetails called.");
-    return {
+    let gameDetails = {
       roles: this.roles,
       gameStatus: this.gameStatus,
       gameLog: this.gameLog,
       rounds: this.rounds,
       round: this.round,
+    };
+    console.log("[BaseGame] Game details:", gameDetails);
+    return {
+      ...gameDetails,
     };
   }
 

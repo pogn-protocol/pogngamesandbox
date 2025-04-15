@@ -138,4 +138,4 @@ class TicTacToe {
   }
 }
 
-const defaultExport = TicTacToe;
+module.exports = TicTacToe;
