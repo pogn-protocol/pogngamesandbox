@@ -57,7 +57,7 @@ class TurnBasedGame extends BaseGame {
   getGameDetails() {
     console.log("[TurnBasedGame] getGameDetails called.");
     let superDetails = super.getGameDetails();
-    console.log("[TurnBasedGame] Super game details:", superDetails);
+    console.log("[TurnBasedGame] Super baseGame details:", superDetails);
     let turnBasedDetails = {
       currentTurn: this.currentTurn,
       //gameStatus: this.gameStatus,

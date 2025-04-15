@@ -8,7 +8,7 @@ class BaseGame {
     this.gameStatus = "waiting";
     this.gameLog = [];
     this.round = 1;
-    this.rounds = options.rounds || 0;
+    this.rounds = options.rounds || 1;
   }
 
   assignRoles(roleList = []) {
@@ -63,8 +63,21 @@ class BaseGame {
   }
 
   nextRound() {
-    console.log("[BaseGame] nextRound called.");
-    if (this.rounds && this.round >= this.rounds) {
+    console.log(
+      "[BaseGame] nextRound called. Current round:",
+      this.round,
+      "Rounds:",
+      this.rounds
+    );
+    if (this.gameStatus === "complete") {
+      console.log("[BaseGame] Game is complete, cannot advance round.");
+      return;
+    }
+    if (
+      typeof this.rounds === "number" &&
+      this.rounds > 0 &&
+      this.round >= this.rounds
+    ) {
       console.log("[BaseGame] Maximum rounds reached, ending game.");
       this.gameStatus = "complete";
       return;

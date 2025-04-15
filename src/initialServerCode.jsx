@@ -45,7 +45,6 @@ class OddsAndEvens {
   getOddsAndEvensDetails() {
     return {
       ...this.getGameDetails(), // Include game details from BaseGame
-      gameType: "OddsAndEvens",
       roundResults: this.roundResults,
       scores: this.scores,
     };

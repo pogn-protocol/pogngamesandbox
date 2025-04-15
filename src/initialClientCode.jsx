@@ -190,7 +190,7 @@ function GameComponent({ sendGameMessage, gameState, playerId, gameId }) {
             </div>
           )}
 
-          {gameStatus !== "completed" && (
+          {gameStatus !== "complete" && (
             <div className="space-y-2">
               <p className="text-sm font-medium">
                 {!yourChoice

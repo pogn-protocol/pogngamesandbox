@@ -40,33 +40,6 @@ class TicTacToe {
     return {};
   }
 
-  // init() {
-  //   console.log("[TicTacToe] init() called");
-  //   console.log(
-  //     "[TicTacToe] typeof this.assignRoles === function :",
-  //     typeof this.assignRoles === "function"
-  //   );
-  //   const roles = ["X", "O"];
-  //   if (typeof this.assignRoles === "function") {
-  //     console.log("[TicTacToe] assignRoles called.");
-  //     this.assignRoles(roles);
-  //     const ids = Object.keys(this.roles);
-  //     console.log("[TicTacToe] ids:", ids);
-  //     this.currentTurn = ids[0];
-  //     console.log("[TicTacToe] currentTurn:", this.currentTurn);
-  //     console.log("[TicTacToe] game details:", this.getGameDetails());
-  //     return {
-  //       gameAction: "gameStarted",
-  //       playerId: this.currentTurn,
-  //       board: [...this.board],
-  //       currentTurn: this.currentTurn,
-  //       ...this.getGameDetails(),
-  //     };
-  //   }
-
-  //   return {};
-  // }
-
   checkWinner() {
     const b = this.board;
     const lines = [
@@ -134,6 +107,8 @@ class TicTacToe {
           ? "It's a draw!"
           : `Player ${this.winner} wins!`
         : `Player ${playerId} made a move.`,
+      private: { yourMove: index },
+      ...this.getGameDetails(),
     };
   }
 }

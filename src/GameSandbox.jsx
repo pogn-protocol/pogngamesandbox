@@ -29,25 +29,13 @@ const GameSandbox = () => {
   const [numPlayers, setNumPlayers] = useState(2);
   const [userImports, setUserImports] = useState([]);
   const [turnBased, setTurnBased] = useState(true);
-  const [useMaxRounds, setUseMaxRounds] = useState(true);
-  const [maxRounds, setMaxRounds] = useState(2);
+  const [useRounds, setUseRounds] = useState(false);
+  const [rounds, setRounds] = useState(2);
 
   const handleRun = async () => {
     await loadExternalScripts(userImports.filter(Boolean));
     try {
       const strippedServerCode = serverCode.replace(/export\s+default\s+/g, "");
-      // const { default: GameClass } = new Function(
-      //   "BaseGame",
-      //   "TurnBasedGame",
-      //   `${strippedServerCode}; return { default: typeof defaultExport !== "undefined" ? defaultExport : null };`
-      // )(BaseGame, TurnBasedGame);
-
-      // if (typeof GameClass !== "function") {
-      //   throw new Error(
-      //     "Missing defaultExport = YourGameClass in server code."
-      //   );
-
-      // }
       const module = { exports: {} };
       const exports = module.exports;
 
@@ -64,42 +52,13 @@ const GameSandbox = () => {
         );
       }
 
-      // class AutoGame extends (turnBased ? TurnBasedGame : BaseGame) {
-      //   constructor(options) {
-      //     super(options.baseGameOptions || {});
-      //     const userInstance = new UserGameLogic(options);
-
-      //     // Copy instance fields (not functions)
-      //     Object.assign(this, userInstance);
-
-      //     // Dynamically patch method calls using Proxy
-      //     const userProto = Object.getPrototypeOf(userInstance);
-      //     const self = this;
-
-      //     const proxy = new Proxy(this, {
-      //       get(target, prop, receiver) {
-      //         // Prefer user-defined methods
-      //         if (typeof userProto[prop] === "function") {
-      //           return userProto[prop].bind(self);
-      //         }
-
-      //         // Fallback to built-in methods
-      //         const value = Reflect.get(target, prop, receiver);
-      //         return typeof value === "function" ? value.bind(self) : value;
-      //       },
-      //     });
-
-      //     return proxy;
-      //   }
-      // }
-
-      // const GameClass = AutoGame;
       function createAutoGameClass(UserGameLogic, turnBased = false) {
+        console.log("Creating AutoGame class with turnBased:", turnBased);
         const ParentGame = turnBased ? TurnBasedGame : BaseGame;
 
         return class AutoGame extends ParentGame {
           constructor(options) {
-            super(options.baseGameOptions || {});
+            super(options || {});
 
             const userInstance = new UserGameLogic(options);
             Object.assign(this, userInstance); // copy fields
@@ -132,7 +91,7 @@ const GameSandbox = () => {
           baseGameOptions: {
             minPlayers: numPlayers,
             maxPlayers: numPlayers,
-            rounds: useMaxRounds ? maxRounds : Infinity,
+            rounds: useRounds ? rounds : Infinity, // this line is doing exactly what we need
           },
           roleList: Array.from({ length: numPlayers }, (_, i) => String(i + 1)),
         },
@@ -158,7 +117,6 @@ const GameSandbox = () => {
         }
       }
 
-      // ✅ Now apply result to UI state
       if (result && typeof result === "object") {
         setPlayerStates(() => {
           const newStates = {};
@@ -171,19 +129,6 @@ const GameSandbox = () => {
           return newStates;
         });
       }
-
-      // if (initialBroadcast && typeof initialBroadcast === "object") {
-      //   setPlayerStates((prev) => {
-      //     const newStates = { ...prev };
-      //     for (const pid in initialBroadcast) {
-      //       newStates[pid] = {
-      //         lastInput: null,
-      //         lastResponse: initialBroadcast[pid]?.payload || {},
-      //       };
-      //     }
-      //     return newStates;
-      //   });
-      // }
 
       const EvaluatedComponent = await transpile(
         clientCode,
@@ -315,21 +260,26 @@ const GameSandbox = () => {
           onChange={(e) => setTurnBased(e.target.checked)}
           className="w-5 h-5"
         />
-        <label className="font-semibold">Max Rounds:</label>
+        <label className="font-semibold">Rounds:</label>
         <input
           type="checkbox"
-          checked={useMaxRounds}
-          onChange={(e) => setUseMaxRounds(e.target.checked)}
+          checked={useRounds}
+          onChange={(e) => setUseRounds(e.target.checked)}
           className="w-5 h-5"
         />
-        <input
-          type="number"
-          min={1}
-          value={maxRounds}
-          onChange={(e) => setMaxRounds(Number(e.target.value))}
-          className="w-20 px-2 py-1 border rounded"
-          disabled={!useMaxRounds}
-        />
+
+        {useRounds && (
+          <>
+            <label className="font-semibold">Rounds:</label>
+            <input
+              type="number"
+              min={1}
+              value={rounds}
+              onChange={(e) => setRounds(Number(e.target.value))}
+              className="w-20 px-2 py-1 border rounded"
+            />
+          </>
+        )}
       </div>
 
       <button
