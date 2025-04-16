@@ -10,3 +10,19 @@ Pogansandbox is meant to use base classes that [pognclient](https://github.com/p
 Pognsandbox can evolve to be a general development tool for more complex games.
 
 ![image](https://github.com/user-attachments/assets/d488bdc5-e781-468e-ae7f-e905a45d974e)
+
+#Prompt
+
+###pogn Client console
+The pognClient console is wrapped with the [gameShell](https://github.com/pogn-protocol/pogngamesandbox/blob/master/src/utils/GameShell.jsx) and provides an interface to the pognServer console using the props: sendGameMessage, gameState, playerId, gameId. The gameShell also provides a messaging gui for sent and recivied msgs to and from the pognServer console
+
+Export your GameComponent like this: const defaultExport = GameComponent;
+
+You have access to the react library by using React.<>
+
+### 
+The pognServer console will extend either the [base](https://github.com/pogn-protocol/pogngamesandbox/blob/master/src/utils/baseGame.js) or the [turnBased](https://github.com/pogn-protocol/pogngamesandbox/blob/master/src/utils/turnBasedGame.js) (turnBased extends base) game class providing the gameplay framework chosen by the user before they hit the run button on the pogngamesandbox main gui. 
+
+
+
+
