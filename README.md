@@ -16,15 +16,19 @@ Users should enter the files referenced into the llm prompt as well.
 
 ## pognClient console
 
-The pognClient console is wrapped with the [gameShell](https://github.com/pogn-protocol/pogngamesandbox/blob/master/src/utils/GameShell.jsx) and provides an interface to the pognServer console using the props: sendGameMessage, gameState, playerId, gameId. The framework provides a messaging gui for sent and recivied msgs to and from the pognServer console.
+The pognClient console is wrapped with the [gameShell](https://github.com/pogn-protocol/pogngamesandbox/blob/master/src/utils/GameShell.jsx) and provides an interface to the pognServer console using the props: ```sendGameMessage, gameState, playerId, gameId```. 
 
-Export your GameComponent like this: const defaultExport = GameComponent;
+The framework provides a messaging gui for sent and recivied msgs to and from the pognServer console.
+
+Export your GameComponent like this: ```const defaultExport = GameComponent;```
 
 You have access to the react library by using React.<>
 
 ## pognServer Console
 
 The pognServer console will extend either the [base](https://github.com/pogn-protocol/pogngamesandbox/blob/master/src/utils/baseGame.js) or the [turnBased](https://github.com/pogn-protocol/pogngamesandbox/blob/master/src/utils/turnBasedGame.js) (turnBased extends base) game class providing the gameplay framework chosen by the user before they hit the run button on the pogngamesandbox main gui. 
+
+The gameSandbox expects a nodejs export syntax like this: ```module.exports = RockPaperScissors;```
 
 ## Examples
 
