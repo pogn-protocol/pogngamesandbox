@@ -12,9 +12,10 @@ Pognsandbox can evolve to be a general development tool for more complex games.
 ![image](https://github.com/user-attachments/assets/d488bdc5-e781-468e-ae7f-e905a45d974e)
 
 # Prompt
-Users should enter the files referenced into the llm prompt as well.
 
-This is just a novelty setup.  Its not expected to be able to produce complex games or games more complex than the existing llms however it coudld help drive the development path.
+> Note: This prompting is more of a novelty.  Its not expected to be able to produce complex games or games more complex than the existing llms however it could help drive the development path and provide a fun interface for non or hobby coders and/or game designers or nostr users.
+
+Users should enter the files referenced into the llm prompt as well.
 
 ## pognClient console
 
