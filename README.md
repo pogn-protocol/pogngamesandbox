@@ -25,12 +25,12 @@ The pognClient console is wrapped with the [gameShell](https://github.com/pogn-p
 
 sendGameMessage should be structured like this:
 
-```sendGameMessage({
-  gameAction: "yourAction",
-  playerId,
-  gameId,
-  ... // your custom fields like index, choice, number, etc.
-});```
+```sendGameMessage({```
+ ``` gameAction: "yourAction",```
+ ``` playerId,```
+ ``` gameId,```
+ ``` ... // your custom fields like index, choice, number, etc.```
+```});```
 
 The framework provides a messaging gui for sent and recivied msgs to and from the pognServer console.
 
@@ -52,12 +52,12 @@ The gameSandbox expects a nodejs export syntax like this: ```module.exports = Ro
 
 The game server file should return msgs in this format:
 
-``return {
-  gameAction: "roundCompleted",
-  ...this.getGameDetails(),
-  winner: this.winner,
-  private: { yourChoice },
-};```
+```return {```
+ ``` gameAction: "roundCompleted",```
+```  ...this.getGameDetails(),```
+```  winner: this.winner,```
+```  private: { yourChoice },```
+```};```
 
 ## Examples
 
