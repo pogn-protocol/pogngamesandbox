@@ -30,7 +30,7 @@ Tailwind.css is provided.
 
 ## pognServer Console
 
-The pognServer console will extend either the [base](https://github.com/pogn-protocol/pogngamesandbox/blob/master/src/utils/baseGame.js) or the [turnBased](https://github.com/pogn-protocol/pogngamesandbox/blob/master/src/utils/turnBasedGame.js) (turnBased extends base) game class providing the gameplay framework chosen by the user before they hit the run button on the pogngamesandbox main gui. 
+The pognServer console will extend either the [base](https://github.com/pogn-protocol/pogngamesandbox/blob/master/src/utils/baseGame.js) or the [turnBased](https://github.com/pogn-protocol/pogngamesandbox/blob/master/src/utils/turnBasedGame.js) (turnBased extends base) game class thus providing the gameplay framework chosen by the user before they hit the run button on the pogngamesandbox main gui. 
 
 The gameSandbox expects a nodejs export syntax like this: ```module.exports = RockPaperScissors;```
 
