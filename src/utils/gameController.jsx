@@ -57,6 +57,9 @@ export const gameState = {
 // }
 
 export function initGame({ players = [], GameClass = null, options = {} }) {
+  console.log("[initGame] Initializing game with players:", players);
+  console.log("[initGame] GameClass:", GameClass);
+  console.log("[initGame] Options:", options);
   gameState.playerData = {};
 
   players.forEach((id) => {

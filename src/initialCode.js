@@ -1,9 +1,12 @@
 // initialCode.js
 
-import defaultClientCode from "./initialClientCode.jsx?raw"; // 👈 Convert full JSX to string at import time
-import defaultServerCode from "./initialServerCode.jsx?raw"; // 👈 Convert full JSX to string at import time
+//import defaultClientCode from "./initialClientCode.jsx?raw"; // 👈 Convert full JSX to string at import time
+//import defaultServerCode from "./initialServerCode.jsx?raw"; // 👈 Convert full JSX to string at import time
 //import defaultClientCode from "./ticTacToeClient.jsx?raw"; // 👈 Convert full JSX to string at import tim
 //import defaultServerCode from "./ticTacToeServer.jsx?raw"; // 👈 Convert full JSX to string at import time
+
+import defaultClientCode from "./rpsClient.jsx?raw"; // 👈 Convert full JSX to string at import tim
+import defaultServerCode from "./rpsServer.jsx?raw"; // 👈 Convert full JSX to string at import tim
 
 export { defaultClientCode, defaultServerCode };
 

@@ -83,18 +83,41 @@ const GameSandbox = () => {
         };
       }
       const GameClass = createAutoGameClass(UserGameLogic, turnBased);
+      console.log("useRounds", useRounds, "rounds", rounds);
+
+      const flatOptions = turnBased
+        ? {
+            baseGameOptions: {
+              minPlayers: numPlayers,
+              maxPlayers: numPlayers,
+              rounds: useRounds ? rounds : Infinity,
+            },
+            roleList: Array.from({ length: numPlayers }, (_, i) =>
+              String(i + 1)
+            ),
+          }
+        : {
+            minPlayers: numPlayers,
+            maxPlayers: numPlayers,
+            rounds: useRounds ? rounds : Infinity,
+            roleList: Array.from({ length: numPlayers }, (_, i) =>
+              String(i + 1)
+            ),
+          };
 
       gameController.initGame({
         players: Array.from({ length: numPlayers }, (_, i) => String(i + 1)),
         GameClass,
-        options: {
-          baseGameOptions: {
-            minPlayers: numPlayers,
-            maxPlayers: numPlayers,
-            rounds: useRounds ? rounds : Infinity, // this line is doing exactly what we need
-          },
-          roleList: Array.from({ length: numPlayers }, (_, i) => String(i + 1)),
-        },
+        // options: {
+        //   baseGameOptions: {
+        //     minPlayers: numPlayers,
+        //     maxPlayers: numPlayers,
+        //     rounds: useRounds ? rounds : "Infinity", // this line is doing exactly what we need
+        //     msg: "test",
+        //   },
+        //   roleList: Array.from({ length: numPlayers }, (_, i) => String(i + 1)),
+        // },
+        options: flatOptions,
       });
 
       const instance = gameController.gameState.gameInstance;
