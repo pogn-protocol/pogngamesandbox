@@ -13,7 +13,7 @@ Pognsandbox can evolve to be a general development tool for more complex games.
 
 # Prompt
 
-(Here's a chatGTP demo with this below prompted with the files: https://chatgpt.com/share/67ffd19c-b790-8002-983f-909435ee76f7)
+(Here's a chatGTP demo with this below prompted with the files: [https://chatgpt.com/share/67ffd19c-b790-8002-983f-909435ee76f7](https://chatgpt.com/share/67ffd19c-b790-8002-983f-909435ee76f7))
 
 > Note: This prompting is more of a novelty.  Its not expected to be able to produce complex games or games more complex than the existing llms however it could help drive the development path and provide a fun interface for non or hobby coders and/or game designers or nostr users.
 
