@@ -14,6 +14,8 @@ Pognsandbox can evolve to be a general development tool for more complex games.
 # Prompt
 Users should enter the files referenced into the llm prompt as well.
 
+This is just a novelty setup.  Its not expected to be able to produce complex games or games more complex than the existing llms however it coudld help drive the development path.
+
 ## pognClient console
 
 The pognClient console is wrapped with the [gameShell](https://github.com/pogn-protocol/pogngamesandbox/blob/master/src/utils/GameShell.jsx) and provides an interface to the pognServer console using the props: ```sendGameMessage, gameState, playerId, gameId```. 
