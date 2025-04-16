@@ -32,7 +32,7 @@ The gameSandbox expects a nodejs export syntax like this: ```module.exports = Ro
 
 ## Examples
 
-## pognClient Examples
+### pognClient Examples
 
 -[ticTacToe client](https://github.com/pogn-protocol/pogngamesandbox/blob/master/src/ticTacToeClient.jsx)
 
@@ -40,7 +40,7 @@ The gameSandbox expects a nodejs export syntax like this: ```module.exports = Ro
 
 -[odds and evens client](https://github.com/pogn-protocol/pogngamesandbox/blob/master/src/initialClientCode.jsx)
 
-## pognServer Examples
+### pognServer Examples
 
 -[ticTacToe server](https://github.com/pogn-protocol/pogngamesandbox/blob/master/src/ticTacToeServer.jsx)
 
