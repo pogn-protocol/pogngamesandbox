@@ -24,6 +24,10 @@ Export your GameComponent like this: ```const defaultExport = GameComponent;```
 
 You have access to the react library by using React.<>
 
+Imports aren't supported inline with the code atm (imports using the gui is working or is expected to soon).
+
+Tailwind.css is provided.
+
 ## pognServer Console
 
 The pognServer console will extend either the [base](https://github.com/pogn-protocol/pogngamesandbox/blob/master/src/utils/baseGame.js) or the [turnBased](https://github.com/pogn-protocol/pogngamesandbox/blob/master/src/utils/turnBasedGame.js) (turnBased extends base) game class providing the gameplay framework chosen by the user before they hit the run button on the pogngamesandbox main gui. 
