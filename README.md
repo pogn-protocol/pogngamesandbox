@@ -11,18 +11,36 @@ Pognsandbox can evolve to be a general development tool for more complex games.
 
 ![image](https://github.com/user-attachments/assets/d488bdc5-e781-468e-ae7f-e905a45d974e)
 
-#Prompt
+# Prompt
+Users should enter the files referenced into the llm prompt as well.
 
-###pogn Client console
-The pognClient console is wrapped with the [gameShell](https://github.com/pogn-protocol/pogngamesandbox/blob/master/src/utils/GameShell.jsx) and provides an interface to the pognServer console using the props: sendGameMessage, gameState, playerId, gameId. The gameShell also provides a messaging gui for sent and recivied msgs to and from the pognServer console
+## pognClient console
+
+The pognClient console is wrapped with the [gameShell](https://github.com/pogn-protocol/pogngamesandbox/blob/master/src/utils/GameShell.jsx) and provides an interface to the pognServer console using the props: sendGameMessage, gameState, playerId, gameId. The framework provides a messaging gui for sent and recivied msgs to and from the pognServer console.
 
 Export your GameComponent like this: const defaultExport = GameComponent;
 
 You have access to the react library by using React.<>
 
-### 
+## pognServer Console
+
 The pognServer console will extend either the [base](https://github.com/pogn-protocol/pogngamesandbox/blob/master/src/utils/baseGame.js) or the [turnBased](https://github.com/pogn-protocol/pogngamesandbox/blob/master/src/utils/turnBasedGame.js) (turnBased extends base) game class providing the gameplay framework chosen by the user before they hit the run button on the pogngamesandbox main gui. 
 
+## Examples
 
+## pognClient Examples
 
+-[ticTacToe client](https://github.com/pogn-protocol/pogngamesandbox/blob/master/src/ticTacToeClient.jsx)
+
+-[rock, paper, scissors client](https://github.com/pogn-protocol/pogngamesandbox/blob/master/src/rpsClient.jsx)
+
+-[odds and evens client](https://github.com/pogn-protocol/pogngamesandbox/blob/master/src/initialClientCode.jsx)
+
+## pognServer Examples
+
+-[ticTacToe server](https://github.com/pogn-protocol/pogngamesandbox/blob/master/src/ticTacToeServer.jsx)
+
+-[rock, paper, scissors server](https://github.com/pogn-protocol/pogngamesandbox/blob/master/src/rpsServer.jsx)
+
+-[odds and evens server](https://github.com/pogn-protocol/pogngamesandbox/blob/master/src/initialServerCode.jsx)
 
